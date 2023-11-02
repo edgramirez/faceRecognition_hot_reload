@@ -38,9 +38,10 @@ def log_warning(msg):
 
 def dir_exists(path_str):
     path = Path(path_str)
-    print(path.exists())
-    quit()
-    return path.exists()
+    if path.exists():
+        return True
+    return False
+    #    log_error('Directory: {} does not exist.'.format(path_str))
 
 
 def create_data_dir(path_str):
@@ -193,15 +194,20 @@ if BASE_INPUT_DB_DIRECTORY is None:
     BASE_INPUT_DB_DIRECTORY = os.getenv("HOME") + '/faceRecognition/input_data'
     log_warning('BASE_INPUT_DB_DIRECTORY not defined as global variable, using default value: '+BASE_INPUT_DB_DIRECTORY)
 
-BASE_OUTPUT_DB_DIRECTORY = os.getenv("BASE_OUTPUT_DB_DIRECTORY")
-if BASE_OUTPUT_DB_DIRECTORY is None:
-    BASE_OUTPUT_DB_DIRECTORY = os.getenv("HOME") + '/faceRecognition/output_data'
-    log_warning('BASE_OUTPUT_DB_DIRECTORY not defined as global variable, using default value: '+BASE_OUTPUT_DB_DIRECTORY)
+WHITELIST_DB_BASE_DIR = os.getenv("WHITELIST_DB_BASE_DIR")
+if WHITELIST_DB_BASE_DIR is None:
+    WHITELIST_DB_BASE_DIR = os.getenv("HOME") + '/faceRecognition/whitelist_dbs/'
+    log_warning('WHITELIST_DB_BASE_DIR not defined as global variable, using default value: '+ WHITELIST_DB_BASE_DIR)
 
 WHITELIST_DB_NAME = os.getenv("WHITELIST_DB_NAME")
 if WHITELIST_DB_NAME is None:
     WHITELIST_DB_NAME = 'WhiteList.dat'
     log_warning('WHITELIST_DB_NAME not defined as global variable, using default value: '+ WHITELIST_DB_NAME)
+
+BLACKLIST_DB_BASE_DIR = os.getenv("BLACKLIST_DB_BASE_DIR")
+if BLACKLIST_DB_BASE_DIR is None:
+    BLACKLIST_DB_BASE_DIR = os.getenv("HOME") + '/faceRecognition/blacklist_dbs/'
+    log_warning('BLACKLIST_DB_BASE_DIR not defined as global variable, using default value: '+ BLACKLIST_DB_BASE_DIR)
 
 BLACKLIST_DB_NAME = os.getenv("BLACKLIST_DB_NAME")
 if BLACKLIST_DB_NAME is None:

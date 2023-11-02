@@ -67,7 +67,7 @@ def encode_known_faces_from_images_in_dir(image_path, output_file, image_group=N
     if append and com.file_exists(output_file):
         known_face_encodings, known_face_metadata = com.read_pickle(output_file)
 
-    write_to_file = False
+    write_to_file_counter = 0
     model = None
     for file_name in files:
         # load the image into face_recognition library
@@ -95,7 +95,7 @@ def encode_known_faces_from_images_in_dir(image_path, output_file, image_group=N
             '''
 
         if encoding_result:
-            #write_to_file = True
+            write_to_file_counter += 1
             #if write_to_file:
             #print(known_face_metadata)
             #print("\n\nedgar\n\n")
@@ -104,6 +104,8 @@ def encode_known_faces_from_images_in_dir(image_path, output_file, image_group=N
             com.write_to_pickle(known_face_encodings, known_face_metadata, output_file)
         else:
             com.log_warning("Unable to process a face from image: {}".format(name))
+
+    return write_to_file_counter
 
 
 def encode_and_update_face_image(face_obj, name, face_encodings, face_metadata, default_sample=0, model=None,
