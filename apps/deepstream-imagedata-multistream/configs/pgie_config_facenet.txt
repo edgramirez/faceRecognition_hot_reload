@@ -87,7 +87,7 @@ num-detected-classes=1
 #filter-out-class-ids=1;2;3
 # Edgar -  inicialmente 0 pero se puede hacer que no analice todos los frames y haga uno si otro no interval=0
 # Es el número de frames que se salta para analizar el siguiente
-interval=6
+interval=8
 gie-unique-id=1
 #output-blob-names=output_bbox;output_cov
 output-blob-names=output_bbox/BiasAdd;output_cov/Sigmoid
