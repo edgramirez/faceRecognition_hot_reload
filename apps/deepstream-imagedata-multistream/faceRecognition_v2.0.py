@@ -179,15 +179,14 @@ def config_age_and_gender(srv_camera_id):
 def set_blacklist_db(camera_service_id):
     global BLACKLIST_DB_NAME, BLACKLIST_DB_DIRECTORY
 
+    service_name = 'blackList'
     camera_mac = camera_service_id.split('_')[1]
 
     # si la db esa definida usar esa si no usar la default
     for item in sv.scfg[camera_mac]['services']:
         if camera_service_id in item:
-
-            service_name = 'blackList'
             if 'dbName' in item[camera_service_id][service_name]:
-                search_db_name = BLACKLIST_DB_DIRECTORY + '/' + item[camera_service_id][service_name]['dbName']
+                search_db_name = item[camera_service_id][service_name]['dbName']
             else:
                 search_db_name = BLACKLIST_DB_DIRECTORY + '/' + BLACKLIST_DB_NAME
 
@@ -201,7 +200,10 @@ def set_blacklist_db(camera_service_id):
                 set_known_faces_db_name(camera_service_id, search_db_name)
                 # Extrae de la db de blackList
                 # Estos valores son fijos y solo se leen una sola vez desde el archivo de base de datos o serializado
-                sv.blacklist_encodings, sv.blacklist_metas = com.read_pickle(get_known_faces_db_name(camera_service_id), False)
+                blacklist_encodings, blacklist_metas = com.read_pickle(get_known_faces_db_name(camera_service_id), False)
+                sv.blacklist_encodings.update({camera_service_id[7:24]: blacklist_encodings})
+                sv.blacklist_metas.update({camera_service_id[7:24]: blacklist_metas})
+
                 # Carga los datos en sus dictionarios globales correspondientes
                 return True
 
@@ -217,20 +219,25 @@ def set_whitelist_db(camera_service_id):
 
     # si la db esa definida usar esa si no usar la default
     for item in sv.scfg[camera_mac]['services']:
-
         if camera_service_id in item:
             if 'dbName' in item[camera_service_id][service_name]:
-                #search_db_name = WHITELIST_DB_DIRECTORY + '/' + item[camera_service_id][service_name]['dbName']
                 search_db_name = item[camera_service_id][service_name]['dbName']
             else:
                 search_db_name = WHITELIST_DB_DIRECTORY + '/' + WHITELIST_DB_NAME
+
+            if camera_service_id not in sv.search_db_name_dict:
+                sv.search_db_name_dict.update({camera_service_id: search_db_name})
+            else:
+                sv.search_db_name_dict[camera_service_id] = search_db_name
 
             # check the DB file exists and is not empty
             if com.file_exists_and_not_empty(search_db_name):
                 # Guarda el nombre de la db de whiteList
                 set_known_faces_db_name(camera_service_id, search_db_name)
                 # Extrae de la db de blackList
-                sv.whitelist_encodings, sv.whitelist_metas = com.read_pickle(get_known_faces_db_name(camera_service_id), False)
+                whitelist_encodings, whitelist_metas = com.read_pickle(get_known_faces_db_name(camera_service_id), False)
+                sv.whitelist_encodings.update({camera_service_id[7:24]: whitelist_encodings})
+                sv.whitelist_metas.update({camera_service_id[7:24]: whitelist_metas})
                 # Carga los datos en sus dictionarios globales correspondientes
                 return True
 
@@ -458,7 +465,6 @@ def update_databases():
     token_handler = com.open_file(token_file, 'r+')
     if token_handler:
         print(token_handler.read())
-        quit()
         return True
     print('nothing to update')
 
@@ -509,7 +515,7 @@ def set_config(scfg):
                         set_action(service_id_inner, service_name)
                         sv.active_service_names.append(service_name)
 
-                        if sv.services_by_camera_id:
+                        if camera_mac in sv.services_by_camera_id:
                             sv.services_by_camera_id[camera_mac].update({service_name: True})
                         else:
                             sv.services_by_camera_id.update({camera_mac: {service_name: True}})
@@ -654,7 +660,7 @@ def get_gender_and_age(image, image_id, frame_number):
 
 
 def whitelist_process(camera_id, image_encoding, image_meta, obj_id):
-    metadata, best_index, difference = biblio.lookup_known_face(image_encoding, sv.whitelist_encodings, sv.whitelist_metas)
+    metadata, best_index, difference = biblio.lookup_known_face(image_encoding, sv.whitelist_encodings[camera_id], sv.whitelist_metas[camera_id])
 
     # WhiteList reporta cuando no hay coincidencias
     epoc = str(com.get_timestamp())
@@ -703,9 +709,7 @@ def whitelist_process(camera_id, image_encoding, image_meta, obj_id):
 
 
 def blacklist_process(camera_id, image_encoding, image_meta, obj_id):
-    #not_applicable_id = get_not_applicable_id(camera_service_id, abort=False)
-
-    metadata, best_index, difference = biblio.lookup_known_face(image_encoding, sv.blacklist_encodings, sv.blacklist_metas)
+    metadata, best_index, difference = biblio.lookup_known_face(image_encoding, sv.blacklist_encodings[camera_id], sv.blacklist_metas[camera_id])
 
     # BlackList reporta cuando hay coincidencias
     if best_index is None:
@@ -770,7 +774,7 @@ def tiler_sink_pad_buffer_probe(pad, info, u_data):
             delta = initial_time - current_time
             if delta > 30:
                 initial_time = current_time
-                update_databases()
+                #TODO: Enable when option update is ready update_databases()
                 '''
                 if is_blacklist_update_needed():
                     sv.blacklist_encodings, sv.blacklist_metas = com.read_pickle(get_known_faces_db_name('camera_'+camera_id+'_blackList'), False)
@@ -978,9 +982,6 @@ def main():
     is_live = False
 
     # set the Id of the first camera, we are going to use this id to perform the hot update
-    print(sv.scfg)
-    quit()
-
     com.log_debug("Numero de fuentes :{}".format(number_sources))
     print("\n------ Fps_streams: ------ \n", fps_streams)
 
