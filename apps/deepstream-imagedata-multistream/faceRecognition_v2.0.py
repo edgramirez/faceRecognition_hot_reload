@@ -118,6 +118,8 @@ initial_time = com.get_timestamp()
 global hot_reload_counter
 hot_reload_counter = 0
 
+global trigger_file
+trigger_file = com.BASE_INPUT_DB_DIRECTORY + '/' + 'db_to_update.txt'
 
 #################  Model and service functions  #################
 
@@ -738,7 +740,7 @@ def blacklist_process(camera_id, image_encoding, image_meta, obj_id):
 
 
 def tiler_sink_pad_buffer_probe(pad, info, u_data):
-    global call_order_of_keys, hot_reload_counter, initial_time
+    global call_order_of_keys, hot_reload_counter, initial_time, trigger_file
     frame_number = 0		# Faltaba del archivo Original deepstream_imagedata_multistream
     num_rects = 0
     gst_buffer = info.get_buffer()
@@ -772,15 +774,36 @@ def tiler_sink_pad_buffer_probe(pad, info, u_data):
         if hot_reload_counter > 1 and (hot_reload_counter % 273 == 0):
             current_time = time.time()
             delta = initial_time - current_time
-            if delta > 30:
+            if delta > 60:
                 initial_time = current_time
-                #TODO: Enable when option update is ready update_databases()
-                '''
-                if is_blacklist_update_needed():
-                    sv.blacklist_encodings, sv.blacklist_metas = com.read_pickle(get_known_faces_db_name('camera_'+camera_id+'_blackList'), False)
-                if is_whitelist_update_needed():
-                    sv.whitelist_encodings, sv.whitelist_metas = com.read_pickle(get_known_faces_db_name('camera_'+camera_id+'_whiteList'), False)
-                '''
+                if com.file_exists_and_not_empty(trigger_file):
+                    db_list = []
+                    with open(trigger_file) as f:
+                        lines = f.readlines()
+                        print('EDGAR RAMIREZ: ',lines[0].replace('\n',''))
+                        db_list.append(lines[0].replace('\n',''))
+                    try:
+                        com.log_debug("Removing file: {}".format(trigger_file))
+                        os.remove(trigger_file)
+                    except FileNotFoundError:
+                        com.log_debug("File {} does not exist - nothing to remove".format(trigger_file))
+
+                    # validating previous db was deleted
+                    if com.file_exists(trigger_file):
+                        com.log_error('Unable to remove file: {}'.format(trigger_file))
+
+                    type_of_list = db_list[0].split('.dat')[0].split('/')[-1][-5:]
+                    db_name_key = 'camera_'+camera_id+'_'+type_of_list+'List'
+                    if type_of_list == 'white':
+                        whitelist_encodings, whitelist_metas = com.read_pickle(get_known_faces_db_name(db_name_key), False)
+                        sv.whitelist_encodings.update({camera_id: whitelist_encodings})
+                        sv.whitelist_metas.update({camera_id: whitelist_metas})
+                    elif type_of_list == 'black':
+                        blacklist_encodings, blacklist_metas = com.read_pickle(get_known_faces_db_name(db_name_key), False)
+                        sv.blacklist_encodings.update({camera_id: blacklist_encodings})
+                        sv.blacklist_metas.update({camera_id: blacklist_metas})
+                    else:
+                        com.log_error('Unexpected parameter: {}'.format(type_of_list))
 
     while l_frame is not None:
         try:
