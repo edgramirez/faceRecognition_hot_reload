@@ -42,7 +42,7 @@ import pyds
 import cv2
 import os
 import os.path
-from datetime import datetime, timedelta
+import datetime
 import threading
 from random import randrange
 import random
@@ -120,6 +120,12 @@ hot_reload_counter = 0
 
 global trigger_file
 trigger_file = com.BASE_INPUT_DB_DIRECTORY + '/' + 'db_to_update.txt'
+
+global localtime_offset
+localtime_offset = str(datetime.datetime.now(datetime.timezone.utc).astimezone())[-6:-3]
+localtime_offset = int(localtime_offset)
+
+from datetime import datetime, timedelta
 
 #################  Model and service functions  #################
 
@@ -348,8 +354,11 @@ def process_age_and_gender(camera_id, image, obj_id, confidence):
                         "cameraId": camera_id+"_ageGender",
                         "gender": gender,
                         "age": age_mean,
-                        "epocTime": time.time()
+                        "epocTime": time.time(),
+                        "localtimeOffset": localtime_offset
                     }
+                    #local time with UTC offset indicated at the end
+                    #print(datetime.datetime.now(datetime.timezone.utc).astimezone())
                     #print(obj_id, data, sv.ids_status[camera_id][obj_id]['agegender_sent_to_json'])
                     key = "camera_"+camera_id+"_ageAndGender"
                     #jsm.send_json(sv.header, data, 'POST', sv.urls[key])
@@ -681,7 +690,8 @@ def whitelist_process(camera_id, image_encoding, image_meta, obj_id):
                 "listType": 'whiteList',
                 "matchedId": epoc+"_"+str(obj_id),
                 "matchedName": None,
-                "epocTime": str(com.get_timestamp())
+                "epocTime": str(com.get_timestamp()),
+                "localtimeOffset": localtime_offset
                 }
         key = "camera_"+camera_id+"_whiteList"
         background_result = threading.Thread(target=jsm.send_json, args=(sv.header,data,'POST',sv.urls[key],))
@@ -700,7 +710,8 @@ def whitelist_process(camera_id, image_encoding, image_meta, obj_id):
                 "listType": 'whiteList',
                 "matchedId": epoc+"_"+str(obj_id),
                 "matchedName": metadata['name'],
-                "epocTime": epoc
+                "epocTime": epoc,
+                "localtimeOffset": localtime_offset
                 }
         key = "camera_"+camera_id+"_whiteList"
         background_result = threading.Thread(target=jsm.send_json, args=(sv.header,data,'POST',sv.urls[key],))
@@ -727,7 +738,8 @@ def blacklist_process(camera_id, image_encoding, image_meta, obj_id):
             "listType": 'blackList',
             "matchedId": epoc+"_"+str(obj_id),
             "matchedName": metadata['name'],
-            "epocTime": epoc
+            "epocTime": epoc,
+            "localtimeOffset": localtime_offset
             }
 
     key = "camera_"+camera_id+"_blackList"
